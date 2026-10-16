@@ -23,7 +23,9 @@ git remote get-url upstream
 1. Confirm that the worktree is clean and inventory every worktree, stash and
    local branch.
 2. Create a recovery tag at the current Talos `main` tip. Use a name such as
-   `recovery/m0-pre-hermes-sync-YYYYMMDD-<short-sha>`.
+   `recovery/m0-pre-hermes-sync-YYYYMMDD-<short-sha>`. Verify the tag target,
+   then publish that exact tag without force so recovery does not depend on one
+   workstation.
 3. Fetch complete upstream history and tags:
 
    ```bash

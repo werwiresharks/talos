@@ -11,7 +11,7 @@ evidence instead of rewriting history.
 | Talos repository | `werwiresharks/talos` |
 | Upstream repository | `NousResearch/hermes-agent` |
 | Pre-sync Talos SHA | `e06df9c2eae6901f4c88f464e0ae6e753c0428b8` |
-| Recovery reference | `recovery/m0-pre-hermes-sync-20261015-e06df9c` (local tag) |
+| Recovery reference | `origin` tag `recovery/m0-pre-hermes-sync-20261015-e06df9c` |
 | Synchronized upstream SHA | `60f56a6b13c8eb9a9e088c6fc1165257c92f7e11` |
 | Fresh divergence before sync | 0 Talos-only, 2,418 upstream-only commits |
 | Integration method | Strict fast-forward (`git merge --ff-only upstream/main`) |
@@ -29,7 +29,7 @@ evidence instead of rewriting history.
 - The checkout began as a shallow partial clone (`blob:none`). Complete history
   was fetched before calculating ancestry.
 - `origin` and `upstream` URLs matched the repositories in this ledger.
-- The recovery tag resolves to the exact pre-sync SHA. It was not pushed.
+- The recovery tag resolves to the exact pre-sync SHA locally and on `origin`.
 
 ### Validation
 
