@@ -73,3 +73,33 @@ evidence instead of rewriting history.
 The Git synchronization and recovery requirements are complete. Blocking checks
 are green. The full test gate is red and incomplete, so M0 baseline validation
 is not recorded as fully passing.
+
+## 2026-10-15 — Same-day divergence and reviewed merge
+
+After the initial fast-forward was published, Talos `main` gained commit
+`4659216887ffbdf6fbda77712bccc413bb021c76`, which changes the README heading
+from Hermes Agent to Talos. Hermes independently advanced by 31 commits to
+`acc3cada0da86c81efc8aa6c5a291989549ca900`.
+
+The histories had merge base `60f56a6b13c8eb9a9e088c6fc1165257c92f7e11`
+with 1 Talos-only and 31 Hermes-only commits. A second fast-forward was therefore
+not permitted.
+
+| Field | Result |
+| --- | --- |
+| Pre-merge Talos SHA | `4659216887ffbdf6fbda77712bccc413bb021c76` |
+| Hermes SHA | `acc3cada0da86c81efc8aa6c5a291989549ca900` |
+| Recovery reference | `origin` tag `recovery/m0-pre-hermes-merge-20261015-4659216` |
+| Integration method | Clean, non-fast-forward merge on a review branch |
+| Merge SHA | `3c41c7cd144cbea3f772409513f78af87ca5b795` |
+| Review | Draft pull request `werwiresharks/talos#2` |
+| Preservation check | The README heading remains `Talos` |
+
+Validation on the merge branch:
+
+- `python scripts/check` passed all 12 checks with 0 blocking and 0 advisory
+  findings across 104 changed files.
+- The credential deny-list and LSP baseline-recency failures still reproduced
+  in isolation at the newer Hermes SHA.
+- The integration pull request remains draft. The merge has not been applied to
+  `main`, and M0 is not recorded as fully passing.
