@@ -103,3 +103,19 @@ Validation on the merge branch:
   in isolation at the newer Hermes SHA.
 - The integration pull request remains draft. The merge has not been applied to
   `main`, and M0 is not recorded as fully passing.
+
+### Windows validation follow-up
+
+The two deterministic failures were reproduced with the canonical runner and
+classified as test portability defects. Neither fix changes production runtime
+or security behavior.
+
+| Failure | Root cause | Review branch and commit | Validation |
+| --- | --- | --- | --- |
+| Context-reference credential-store fixture | The test redirected `HOME`, but Python on Windows resolves `~` from `USERPROFILE`; the synthetic gcloud path was therefore not under the home guarded by production. | Draft PR `werwiresharks/talos#3`, `9840848dd6f83184f33c40b726c0df5f0a47a45e` | Full `tests/agent/test_context_references.py`: 32 passed; `python scripts/check`: 12 checks passed, 0 blocking, 0 advisory. |
+| LSP delta-baseline recency fixture | Production stores `os.path.abspath` keys, while the test asserted raw POSIX-style `/repo/...` keys that differ on Windows. | Draft PR `werwiresharks/talos#4`, `38c9f357e62962dc1c293edf637d5f304c0c06e6` | Full `tests/agent/lsp/test_manager_locking.py`: 2 passed; `python scripts/check`: 12 checks passed, 0 blocking, 0 advisory. |
+
+Both fix PRs target the reviewed integration branch so their commits remain
+separately reviewable and become part of draft PR #2 only after review. A fresh
+complete canonical suite is still required before the integration PR can be
+marked ready or merged.
