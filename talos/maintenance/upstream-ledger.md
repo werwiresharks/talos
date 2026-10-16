@@ -119,3 +119,25 @@ Both fix PRs target the reviewed integration branch so their commits remain
 separately reviewable and become part of draft PR #2 only after review. A fresh
 complete canonical suite is still required before the integration PR can be
 marked ready or merged.
+
+## 2026-10-16 — Remote reconciliation after concurrent merges
+
+During the final remote audit, pull requests #1 and #2 were already merged by
+another actor while their hosted checks still showed as queued. The local agent
+did not perform those merges.
+
+| Field | Result |
+| --- | --- |
+| Maintenance merge | PR #1 merged as `324053ae717` from reviewed head `70a39dd7cfa` |
+| Hermes integration merge | PR #2 merged as `8b1722fb5f3` from reviewed head `3c41c7cd144` |
+| Current `origin/main` | `8b1722fb5f372f8c0a94eae6a4c076d4c42323c5` |
+| Fresh `upstream/main` | `17c691fd7b95c605639c41a37aeb86be576ac7a5` |
+| Fresh merge base | `acc3cada0da86c81efc8aa6c5a291989549ca900` |
+| Fresh divergence | 7 Talos-only, 646 Hermes-only commits |
+| Hosted checks | Still queued with no completed result at audit time |
+
+Fix PRs #3 and #4 were retargeted from the now-merged integration branch to
+`main`; they remain draft and mergeable. No attempt was made to silently merge
+the additional 646 upstream commits. The next upstream update must review this
+new divergence and establish a new exact integration SHA before claiming that
+Talos is current with Hermes.
