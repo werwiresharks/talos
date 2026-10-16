@@ -1,0 +1,93 @@
+name: Talos - Prepare Hermes upstream update
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: Exact Hermes commit SHA or refs/heads/main
+        required: true
+        type: string
+        default: refs/heads/main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: talos-hermes-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'werwiresharks/talos'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Prove fast-forward ancestry
+        id: upstream
+        env:
+          UPSTREAM_REF: ${{ inputs.upstream_ref }}
+        run: |
+          set -euo pipefail
+          git remote add hermes-upstream https://github.com/NousResearch/hermes-agent.git
+          git fetch --no-tags hermes-upstream "$UPSTREAM_REF"
+          upstream_sha="$(git rev-parse FETCH_HEAD)"
+          case "$upstream_sha" in
+            [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]* ) ;;
+            * ) echo '::error::upstream ref did not resolve to a commit'; exit 1 ;;
+          esac
+          if ! git merge-base --is-ancestor HEAD "$upstream_sha"; then
+            echo '::error::Talos main diverges from Hermes; prepare a reviewed merge instead'
+            exit 1
+          fi
+          ahead="$(git rev-list --count HEAD.."$upstream_sha")"
+          if [ "$ahead" -eq 0 ]; then
+            echo '::notice::Talos already contains the requested Hermes revision'
+            exit 0
+          fi
+          short_sha="$(printf '%s' "$upstream_sha" | cut -c1-12)"
+          branch="automation/hermes-upstream-$short_sha"
+          printf 'sha=%s\nshort_sha=%s\nbranch=%s\nahead=%s\n' \
+            "$upstream_sha" "$short_sha" "$branch" "$ahead" >> "$GITHUB_OUTPUT"
+
+      - name: Push update branch and open pull request
+        if: steps.upstream.outputs.sha != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
+          SHORT_SHA: ${{ steps.upstream.outputs.short_sha }}
+          UPDATE_BRANCH: ${{ steps.upstream.outputs.branch }}
+          AHEAD: ${{ steps.upstream.outputs.ahead }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "$UPDATE_BRANCH" >/dev/null 2>&1; then
+            echo "::notice::branch $UPDATE_BRANCH already exists; no ref was overwritten"
+          else
+            git push origin "$UPSTREAM_SHA:refs/heads/$UPDATE_BRANCH"
+          fi
+          existing="$(gh pr list --head "$UPDATE_BRANCH" --state open --json url --jq '.[0].url // empty')"
+          if [ -n "$existing" ]; then
+            echo "Existing pull request: $existing" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          body="$(cat <<EOF
+          ## Hermes upstream update
+
+          - Exact upstream SHA: \`$UPSTREAM_SHA\`
+          - Fast-forward commits: $AHEAD
+          - Upstream: https://github.com/NousResearch/hermes-agent
+
+          Before merge, add the validation result and recovery reference to
+          \`talos/maintenance/upstream-ledger.md\`. Do not merge if ancestry,
+          preservation, required tests or rollback evidence are unresolved.
+          EOF
+          )"
+          url="$(gh pr create \
+            --base main \
+            --head "$UPDATE_BRANCH" \
+            --title "chore(upstream): sync Hermes to $SHORT_SHA" \
+            --body "$body")"
+          echo "Created pull request: $url" >> "$GITHUB_STEP_SUMMARY"
